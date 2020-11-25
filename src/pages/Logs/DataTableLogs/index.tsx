@@ -65,7 +65,6 @@ const DataTableLogs: React.FC = () => {
       //   description: 'Houve um erro ao excluir seus registros',
       //   type: 'error',
       // });
-      console.log('notdeleteall');
     }
   }, [refreshData]);
 
@@ -78,7 +77,6 @@ const DataTableLogs: React.FC = () => {
       //   description: 'Iniciada atualização dos produtos',
       //   type: 'information',
       // });
-      console.log('updated');
     }
   }, []);
 
