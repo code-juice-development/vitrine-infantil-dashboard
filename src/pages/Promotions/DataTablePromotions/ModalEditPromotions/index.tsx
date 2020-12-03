@@ -1,4 +1,5 @@
 import React, { HTMLProps, useState, useEffect, useCallback } from 'react';
+import { useSnackbar } from 'notistack';
 import { PaletteProps, SpacingProps } from '@material-ui/system';
 import {
   Box,
@@ -24,14 +25,12 @@ import axios from '../../../../services/api';
 interface ModalEditPromotionsProps
   extends HTMLProps<PaletteProps & SpacingProps> {
   promotion?: Promotion;
-  open: boolean;
   onSubmit: () => Promise<void>;
   onClose: () => Promise<void>;
 }
 
 const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
   promotion,
-  open,
   onSubmit,
   onClose,
 }) => {
@@ -43,6 +42,8 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
   const [coupon, setCoupon] = useState<string>();
   const [link, setLink] = useState<string>();
   const [storeId, setStoreId] = useState<string>();
+
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     (async () => {
@@ -65,26 +66,59 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
     }
   }, [promotion]);
 
-  const onSubmitModal = useCallback(async () => {
-    const data = {
-      name,
-      description,
-      coupon,
-      link,
-      store_id: storeId,
-    };
+  const onSubmitModal = useCallback(
+    async (event) => {
+      event.preventDefault();
 
-    if (id) {
-      await axios.put(`promotions/${id}`, data);
-    } else {
-      await axios.post('promotions', { id, ...data });
-    }
+      const data = {
+        name,
+        description,
+        coupon,
+        link,
+        store_id: storeId,
+      };
 
-    await onSubmit();
-  }, [id, name, description, coupon, link, storeId, onSubmit]);
+      try {
+        if (!id) {
+          const response = await axios.post('promotions', { ...data });
+
+          if (response && response.status === 201) {
+            enqueueSnackbar('O registro foi inserido com sucesso', {
+              variant: 'success',
+            });
+          } else {
+            enqueueSnackbar('Houve um erro ao inserir o registro', {
+              variant: 'warning',
+            });
+          }
+        } else {
+          const response = await axios.put(`promotions/${id}`, data);
+
+          if (response && response.status === 204) {
+            enqueueSnackbar('O registro foi atualizado com sucesso', {
+              variant: 'success',
+            });
+          } else {
+            enqueueSnackbar('Houve um erro ao atualizar o registro', {
+              variant: 'warning',
+            });
+          }
+        }
+
+        await onSubmit();
+      } catch (error) {
+        enqueueSnackbar('Houve um erro ao fazer a requisição', {
+          variant: 'error',
+        });
+      }
+
+      await onSubmit();
+    },
+    [id, name, description, coupon, link, storeId, onSubmit, enqueueSnackbar],
+  );
 
   return (
-    <Dialog onClose={onClose} open={open} fullWidth maxWidth="sm">
+    <Dialog onClose={onClose} open fullWidth maxWidth="sm">
       <DialogTitle>
         <Box display="flex" flexDirection="row" alignItems="center">
           <AttachMoney />
@@ -93,80 +127,82 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={1}>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="name">Nome</InputLabel>
-              <Input
-                id="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </FormControl>
+      <form onSubmit={onSubmitModal}>
+        <DialogContent dividers>
+          <Grid container spacing={1}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="name">Nome</InputLabel>
+                <Input
+                  id="name"
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="description">Descrição</InputLabel>
+                <Input
+                  id="description"
+                  required
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="coupon">Cupom</InputLabel>
+                <Input
+                  id="coupon"
+                  required
+                  value={coupon}
+                  onChange={(event) => setCoupon(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="link">Link</InputLabel>
+                <Input
+                  id="link"
+                  required
+                  value={link}
+                  onChange={(event) => setLink(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="storeId">Loja</InputLabel>
+                <Select
+                  id="storeId"
+                  required
+                  value={storeId}
+                  onChange={(event) => setStoreId(String(event.target.value))}
+                >
+                  {stores &&
+                    stores.map((store: Store) => (
+                      <MenuItem key={store.id} value={store.id}>
+                        {store.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="description">Descrição</InputLabel>
-              <Input
-                id="description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="coupon">Cupom</InputLabel>
-              <Input
-                id="coupon"
-                value={coupon}
-                onChange={(event) => setCoupon(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="link">Link</InputLabel>
-              <Input
-                id="link"
-                value={link}
-                onChange={(event) => setLink(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="storeId">Loja</InputLabel>
-              <Select
-                id="storeId"
-                value={storeId}
-                onChange={(event) => setStoreId(String(event.target.value))}
-              >
-                {stores &&
-                  stores.map((store: Store) => (
-                    <MenuItem key={store.id} value={store.id}>
-                      {store.name}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          variant="contained"
-          color="primary"
-          autoFocus
-          onClick={onSubmitModal}
-        >
-          Salvar
-        </Button>
-        <Button variant="contained" color="primary" onClick={onClose}>
-          Cancelar
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        <DialogActions>
+          <Button type="submit" variant="contained" color="primary" autoFocus>
+            Salvar
+          </Button>
+          <Button variant="contained" color="primary" onClick={onClose}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };

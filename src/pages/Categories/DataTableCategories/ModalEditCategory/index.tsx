@@ -1,4 +1,5 @@
 import React, { HTMLProps, useState, useEffect, useCallback } from 'react';
+import { useSnackbar } from 'notistack';
 import { PaletteProps, SpacingProps } from '@material-ui/system';
 import {
   Box,
@@ -21,14 +22,12 @@ import axios from '../../../../services/api';
 interface ModalEditCategoryProps
   extends HTMLProps<PaletteProps & SpacingProps> {
   category?: Category;
-  open: boolean;
   onSubmit: () => Promise<void>;
   onClose: () => Promise<void>;
 }
 
 const ModalEditCategory: React.FC<ModalEditCategoryProps> = ({
   category,
-  open,
   onSubmit,
   onClose,
 }) => {
@@ -36,6 +35,8 @@ const ModalEditCategory: React.FC<ModalEditCategoryProps> = ({
   const [name, setName] = useState<string>();
   const [description, setDescription] = useState<string>();
   const [keywords, setKeywords] = useState<string>();
+
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (category) {
@@ -46,24 +47,55 @@ const ModalEditCategory: React.FC<ModalEditCategoryProps> = ({
     }
   }, [category]);
 
-  const onSubmitModal = useCallback(async () => {
-    const data = {
-      name,
-      description,
-      keywords,
-    };
+  const onSubmitModal = useCallback(
+    async (event) => {
+      event.preventDefault();
 
-    if (id) {
-      await axios.put(`categories/${id}`, data);
-    } else {
-      await axios.post('categories', { id, ...data });
-    }
+      const data = {
+        name,
+        description,
+        keywords,
+      };
 
-    await onSubmit();
-  }, [id, name, description, keywords, onSubmit]);
+      try {
+        if (!id) {
+          const response = await axios.post('categories', { ...data });
+
+          if (response && response.status === 201) {
+            enqueueSnackbar('O registro foi inserido com sucesso', {
+              variant: 'success',
+            });
+          } else {
+            enqueueSnackbar('Houve um erro ao inserir o registro', {
+              variant: 'warning',
+            });
+          }
+        } else {
+          const response = await axios.put(`categories/${id}`, data);
+
+          if (response && response.status === 204) {
+            enqueueSnackbar('O registro foi atualizado com sucesso', {
+              variant: 'success',
+            });
+          } else {
+            enqueueSnackbar('Houve um erro ao atualizar o registro', {
+              variant: 'warning',
+            });
+          }
+        }
+
+        await onSubmit();
+      } catch (error) {
+        enqueueSnackbar('Houve um erro ao fazer a requisição', {
+          variant: 'error',
+        });
+      }
+    },
+    [name, description, keywords, id, onSubmit, enqueueSnackbar],
+  );
 
   return (
-    <Dialog onClose={onClose} open={open} fullWidth maxWidth="sm">
+    <Dialog onClose={onClose} open fullWidth maxWidth="sm">
       <DialogTitle>
         <Box display="flex" flexDirection="row" alignItems="center">
           <CategoryIcon />
@@ -72,53 +104,53 @@ const ModalEditCategory: React.FC<ModalEditCategoryProps> = ({
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={1}>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="name">Nome</InputLabel>
-              <Input
-                id="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </FormControl>
+      <form onSubmit={onSubmitModal}>
+        <DialogContent dividers>
+          <Grid container spacing={1}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="name">Nome</InputLabel>
+                <Input
+                  id="name"
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="description">Descrição</InputLabel>
+                <Input
+                  id="description"
+                  required
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="keywords">Palavras-chave</InputLabel>
+                <Input
+                  id="keywords"
+                  required
+                  value={keywords}
+                  onChange={(event) => setKeywords(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
           </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="description">Descrição</InputLabel>
-              <Input
-                id="description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="keywords">Palavras-chave</InputLabel>
-              <Input
-                id="keywords"
-                value={keywords}
-                onChange={(event) => setKeywords(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          variant="contained"
-          color="primary"
-          autoFocus
-          onClick={onSubmitModal}
-        >
-          Salvar
-        </Button>
-        <Button variant="contained" color="primary" onClick={onClose}>
-          Cancelar
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        <DialogActions>
+          <Button type="submit" variant="contained" color="primary" autoFocus>
+            Salvar
+          </Button>
+          <Button variant="contained" color="primary" onClick={onClose}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };

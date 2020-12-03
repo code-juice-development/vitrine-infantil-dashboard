@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   Typography,
   CircularProgress,
@@ -26,6 +27,8 @@ const DataTableLogs: React.FC = () => {
   const [page, setPage] = useState<number>(0);
   const [name, setName] = useState<string | null>();
 
+  const { enqueueSnackbar } = useSnackbar();
+
   const refreshData = useCallback(async () => {
     setIsLoading(true);
 
@@ -50,35 +53,46 @@ const DataTableLogs: React.FC = () => {
   }, [refreshData]);
 
   const onClickClearLogs = useCallback(async () => {
-    const response = await axios.delete('logs');
+    try {
+      const response = await axios.delete('logs');
 
-    if (response.status === 204) {
-      // addToast({
-      //   title: 'Registros Excluídos',
-      //   description: 'Os registros foram excluídos com sucesso',
-      //   type: 'sucess',
-      // });
-      await refreshData();
-    } else {
-      // addToast({
-      //   title: 'Registros não Excluídos',
-      //   description: 'Houve um erro ao excluir seus registros',
-      //   type: 'error',
-      // });
+      if (response.status === 204) {
+        enqueueSnackbar('Os registros foram excluídos com sucesso', {
+          variant: 'success',
+        });
+        await refreshData();
+      } else {
+        enqueueSnackbar('Houve um erro ao excluir seus registros', {
+          variant: 'warning',
+        });
+      }
+    } catch (error) {
+      enqueueSnackbar('Houve um erro ao fazer a requisição', {
+        variant: 'error',
+      });
     }
-  }, [refreshData]);
+  }, [enqueueSnackbar, refreshData]);
 
   const onClickUpdateProducts = useCallback(async () => {
-    const response = await axios.get('products-update');
+    try {
+      const response = await axios.get('products-update');
 
-    if (response.status === 201) {
-      // addToast({
-      //   title: 'Iniciada Atualização',
-      //   description: 'Iniciada atualização dos produtos',
-      //   type: 'information',
-      // });
+      if (response.status === 201) {
+        enqueueSnackbar('Iniciada atualização dos produtos', {
+          variant: 'success',
+        });
+        await refreshData();
+      } else {
+        enqueueSnackbar('Houve um erro ao iniciar a atualização', {
+          variant: 'warning',
+        });
+      }
+    } catch (error) {
+      enqueueSnackbar('Houve um erro ao fazer a requisição', {
+        variant: 'error',
+      });
     }
-  }, []);
+  }, [enqueueSnackbar, refreshData]);
 
   const onTableChange = useCallback(
     (action: string, tableState: MUIDataTableState) => {

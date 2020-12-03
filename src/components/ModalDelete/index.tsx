@@ -9,14 +9,13 @@ import {
 } from '@material-ui/core';
 
 interface ModalDelete extends HTMLProps<PaletteProps & SpacingProps> {
-  open: boolean;
   onSubmit: () => Promise<void>;
   onClose: () => Promise<void>;
 }
 
-const ModalDelete: React.FC<ModalDelete> = ({ open, onSubmit, onClose }) => {
+const ModalDelete: React.FC<ModalDelete> = ({ onSubmit, onClose }) => {
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
+    <Dialog open onClose={onClose} fullWidth maxWidth="xs">
       <DialogContent>
         <DialogContentText>
           Deseja realmente deletar o registro?

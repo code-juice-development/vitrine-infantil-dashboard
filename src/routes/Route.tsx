@@ -31,6 +31,14 @@ const Route: React.FC<RouteProps> = ({
         );
       }
 
+      if (user) {
+        return (
+          <Redirect
+            to={{ pathname: '/main', state: { from: props.location } }}
+          />
+        );
+      }
+
       return <Component {...props} />;
     },
     [Component, isPrivate, user],

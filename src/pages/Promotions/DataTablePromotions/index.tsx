@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSnackbar } from 'notistack';
 import {
   Box,
   Typography,
@@ -34,6 +35,8 @@ const DataTablePromotions: React.FC = () => {
   const [page, setPage] = useState<number>(0);
   const [name, setName] = useState<string | null>();
 
+  const { enqueueSnackbar } = useSnackbar();
+
   const refreshData = useCallback(async () => {
     setIsLoading(true);
 
@@ -44,7 +47,7 @@ const DataTablePromotions: React.FC = () => {
     if (response.data) {
       const { 'x-total-count': total } = response.headers;
 
-      setCount(total);
+      setCount(Number(total));
       setPromotions(response.data);
     }
 
@@ -85,11 +88,30 @@ const DataTablePromotions: React.FC = () => {
 
   const onSubmitModalDelete = useCallback(async () => {
     if (selectedPromotion) {
-      await axios.delete(`promotions/${selectedPromotion.id}`);
-      await refreshData();
+      try {
+        const response = await axios.delete(
+          `promotions/${selectedPromotion.id}`,
+        );
+
+        if (response.status === 204) {
+          enqueueSnackbar('O registro foi excluido com sucesso', {
+            variant: 'success',
+          });
+        } else {
+          enqueueSnackbar('Houve um erro ao excluir o registro', {
+            variant: 'warning',
+          });
+        }
+
+        await refreshData();
+      } catch (error) {
+        enqueueSnackbar('Houve um erro ao fazer a requisição', {
+          variant: 'error',
+        });
+      }
       setOpenModalDelete(false);
     }
-  }, [refreshData, selectedPromotion]);
+  }, [enqueueSnackbar, refreshData, selectedPromotion]);
 
   const onTableChange = useCallback(
     (action: string, tableState: MUIDataTableState) => {
@@ -143,22 +165,28 @@ const DataTablePromotions: React.FC = () => {
 
   return (
     <>
-      <ModalEditPromotions
-        open={openModalAdd}
-        onSubmit={onSubmitModalAdd}
-        onClose={onCloseModalAdd}
-      />
-      <ModalEditPromotions
-        promotion={selectedPromotion}
-        open={openModalEdit}
-        onSubmit={onSubmitModalEdit}
-        onClose={onCloseModalEdit}
-      />
-      <ModalDelete
-        open={openModalDelete}
-        onSubmit={onSubmitModalDelete}
-        onClose={onCloseModalDelete}
-      />
+      {openModalAdd && (
+        <ModalEditPromotions
+          onSubmit={onSubmitModalAdd}
+          onClose={onCloseModalAdd}
+        />
+      )}
+
+      {openModalEdit && (
+        <ModalEditPromotions
+          promotion={selectedPromotion}
+          onSubmit={onSubmitModalEdit}
+          onClose={onCloseModalEdit}
+        />
+      )}
+
+      {openModalDelete && (
+        <ModalDelete
+          onSubmit={onSubmitModalDelete}
+          onClose={onCloseModalDelete}
+        />
+      )}
+
       <DataTable
         // eslint-disable-next-line prettier/prettier
         title={(

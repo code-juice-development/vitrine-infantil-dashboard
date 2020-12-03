@@ -1,14 +1,8 @@
-import React, {
-  createContext,
-  useState,
-  useCallback,
-  useContext,
-  useEffect,
-} from 'react';
+import React, { createContext, useState, useCallback, useContext } from 'react';
 
 import User from '../types/User';
 
-import api from '../services/api';
+import axios from '../services/api';
 
 interface Credentials {
   email: string;
@@ -26,23 +20,27 @@ interface AuthContextData {
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export const AuthProvider: React.FC = ({ children }) => {
-  const [token, setToken] = useState<string>(
-    String(localStorage.getItem('@VIDashboard:token')),
-  );
-  const [user, setUser] = useState<User | null>(
-    JSON.parse(String(localStorage.getItem('@VIDashboard:user'))),
-  );
+  const [token, setToken] = useState<string>(() => {
+    const storedToken = String(localStorage.getItem('@VIDashboard:token'));
 
-  useEffect(() => {
-    if (token && user) {
-      api.defaults.headers.authorization = `Bearer ${token}`;
+    if (storedToken) {
+      axios.defaults.headers.authorization = `Bearer ${storedToken}`;
     }
-  }, [token, user]);
+
+    return storedToken;
+  });
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = JSON.parse(
+      String(localStorage.getItem('@VIDashboard:user')),
+    );
+
+    return storedUser;
+  });
 
   const signIn = useCallback(async ({ email, password }: Credentials): Promise<
     void
   > => {
-    const response = await api.post('sessions', {
+    const response = await axios.post('sessions', {
       email,
       password,
     });
@@ -66,7 +64,7 @@ export const AuthProvider: React.FC = ({ children }) => {
   }, []);
 
   const refreshUser = useCallback(async (): Promise<void> => {
-    const response = await api.get<User>(`users/${user?.id}`);
+    const response = await axios.get<User>(`users/${user?.id}`);
 
     if (response.data) {
       localStorage.setItem('@VIDashboard:user', JSON.stringify(response.data));

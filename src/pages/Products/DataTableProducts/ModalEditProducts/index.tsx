@@ -1,4 +1,5 @@
 import React, { HTMLProps, useState, useEffect, useCallback } from 'react';
+import { useSnackbar } from 'notistack';
 import { PaletteProps, SpacingProps } from '@material-ui/system';
 import {
   Box,
@@ -25,14 +26,12 @@ import axios from '../../../../services/api';
 interface ModalEditPromotionsProps
   extends HTMLProps<PaletteProps & SpacingProps> {
   product?: Product;
-  open: boolean;
   onSubmit: () => Promise<void>;
   onClose: () => Promise<void>;
 }
 
 const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
   product,
-  open,
   onSubmit,
   onClose,
 }) => {
@@ -50,6 +49,8 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
   const [gender, setGender] = useState<string>();
   const [categoryId, setCategoryId] = useState<string>();
   const [storeId, setStoreId] = useState<string>();
+
+  const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
     (async () => {
@@ -83,8 +84,58 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
     }
   }, [product]);
 
-  const onSubmitModal = useCallback(async () => {
-    const data = {
+  const onSubmitModal = useCallback(
+    async (event) => {
+      event.preventDefault();
+
+      const data = {
+        name,
+        description,
+        image,
+        link,
+        price,
+        size,
+        color,
+        gender,
+        category_id: categoryId,
+        store_id: storeId,
+      };
+
+      try {
+        if (!id) {
+          const response = await axios.post('products', { ...data });
+
+          if (response && response.status === 201) {
+            enqueueSnackbar('O registro foi inserido com sucesso', {
+              variant: 'success',
+            });
+          } else {
+            enqueueSnackbar('Houve um erro ao inserir o registro', {
+              variant: 'warning',
+            });
+          }
+        } else {
+          const response = await axios.put(`products/${id}`, data);
+
+          if (response && response.status === 204) {
+            enqueueSnackbar('O registro foi atualizado com sucesso', {
+              variant: 'success',
+            });
+          } else {
+            enqueueSnackbar('Houve um erro ao atualizar o registro', {
+              variant: 'warning',
+            });
+          }
+        }
+
+        await onSubmit();
+      } catch (error) {
+        enqueueSnackbar('Houve um erro ao fazer a requisição', {
+          variant: 'error',
+        });
+      }
+    },
+    [
       name,
       description,
       image,
@@ -93,34 +144,16 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
       size,
       color,
       gender,
-      category_id: categoryId,
-      store_id: storeId,
-    };
-
-    if (id) {
-      await axios.put(`products/${id}`, data);
-    } else {
-      await axios.post('products', { id, ...data });
-    }
-
-    await onSubmit();
-  }, [
-    name,
-    description,
-    image,
-    link,
-    price,
-    size,
-    color,
-    gender,
-    categoryId,
-    storeId,
-    id,
-    onSubmit,
-  ]);
+      categoryId,
+      storeId,
+      onSubmit,
+      id,
+      enqueueSnackbar,
+    ],
+  );
 
   return (
-    <Dialog onClose={onClose} open={open} fullWidth maxWidth="sm">
+    <Dialog onClose={onClose} open fullWidth maxWidth="sm">
       <DialogTitle>
         <Box display="flex" flexDirection="row" alignItems="center">
           <ShoppingBasket />
@@ -129,137 +162,147 @@ const ModalEditPromotions: React.FC<ModalEditPromotionsProps> = ({
           </Box>
         </Box>
       </DialogTitle>
-      <DialogContent dividers>
-        <Grid container spacing={1}>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="name">Nome</InputLabel>
-              <Input
-                id="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </FormControl>
+      <form onSubmit={onSubmitModal}>
+        <DialogContent dividers>
+          <Grid container spacing={1}>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="name">Nome</InputLabel>
+                <Input
+                  id="name"
+                  required
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="description">Descrição</InputLabel>
+                <Input
+                  id="description"
+                  required
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="image">Link Image</InputLabel>
+                <Input
+                  id="image"
+                  required
+                  value={image}
+                  onChange={(event) => setImage(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="link">Link</InputLabel>
+                <Input
+                  id="link"
+                  required
+                  value={link}
+                  onChange={(event) => setLink(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="price">Preço</InputLabel>
+                <Input
+                  id="price"
+                  required
+                  value={price}
+                  onChange={(event) => setPrice(Number(event.target.value))}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="size">Tamanho</InputLabel>
+                <Input
+                  id="size"
+                  required
+                  value={size}
+                  onChange={(event) => setSize(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="color">Cor</InputLabel>
+                <Input
+                  id="color"
+                  required
+                  value={color}
+                  onChange={(event) => setColor(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="gender">Gênero</InputLabel>
+                <Input
+                  id="gender"
+                  required
+                  value={gender}
+                  onChange={(event) => setGender(event.target.value)}
+                />
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="categoryId">Categoria</InputLabel>
+                <Select
+                  id="categoryId"
+                  required
+                  value={categoryId}
+                  onChange={
+                    (event) => setCategoryId(String(event.target.value))
+                    // eslint-disable-next-line react/jsx-curly-newline
+                  }
+                >
+                  {categories &&
+                    categories.map((category: Category) => (
+                      <MenuItem key={category.id} value={category.id}>
+                        {category.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel htmlFor="storeId">Loja</InputLabel>
+                <Select
+                  id="storeId"
+                  required
+                  value={storeId}
+                  onChange={(event) => setStoreId(String(event.target.value))}
+                >
+                  {stores &&
+                    stores.map((store: Store) => (
+                      <MenuItem key={store.id} value={store.id}>
+                        {store.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            </Grid>
           </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="description">Descrição</InputLabel>
-              <Input
-                id="description"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="image">Link Image</InputLabel>
-              <Input
-                id="image"
-                value={image}
-                onChange={(event) => setImage(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="link">Link</InputLabel>
-              <Input
-                id="link"
-                value={link}
-                onChange={(event) => setLink(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="price">Preço</InputLabel>
-              <Input
-                id="price"
-                value={price}
-                onChange={(event) => setPrice(Number(event.target.value))}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={6}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="size">Tamanho</InputLabel>
-              <Input
-                id="size"
-                value={size}
-                onChange={(event) => setSize(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={6}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="color">Cor</InputLabel>
-              <Input
-                id="color"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="gender">Gênero</InputLabel>
-              <Input
-                id="gender"
-                value={gender}
-                onChange={(event) => setGender(event.target.value)}
-              />
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="categoryId">Categoria</InputLabel>
-              <Select
-                id="categoryId"
-                value={categoryId}
-                onChange={(event) => setCategoryId(String(event.target.value))}
-              >
-                {categories &&
-                  categories.map((category: Category) => (
-                    <MenuItem key={category.id} value={category.id}>
-                      {category.name}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth>
-              <InputLabel htmlFor="storeId">Loja</InputLabel>
-              <Select
-                id="storeId"
-                value={storeId}
-                onChange={(event) => setStoreId(String(event.target.value))}
-              >
-                {stores &&
-                  stores.map((store: Store) => (
-                    <MenuItem key={store.id} value={store.id}>
-                      {store.name}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
-          </Grid>
-        </Grid>
-      </DialogContent>
-      <DialogActions>
-        <Button
-          variant="contained"
-          color="primary"
-          autoFocus
-          onClick={onSubmitModal}
-        >
-          Salvar
-        </Button>
-        <Button variant="contained" color="primary" onClick={onClose}>
-          Cancelar
-        </Button>
-      </DialogActions>
+        </DialogContent>
+        <DialogActions>
+          <Button type="submit" variant="contained" color="primary" autoFocus>
+            Salvar
+          </Button>
+          <Button variant="contained" color="primary" onClick={onClose}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
