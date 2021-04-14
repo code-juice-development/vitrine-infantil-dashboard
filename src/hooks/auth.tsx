@@ -53,6 +53,8 @@ export const AuthProvider: React.FC = ({ children }) => {
 
     setUser(response.data.user);
     setToken(response.data.token);
+
+    axios.defaults.headers.authorization = `Bearer ${response.data.token}`;
   }, []);
 
   const signOut = useCallback((): void => {
